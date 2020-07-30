@@ -9,6 +9,9 @@ using Float3 = agz::math::float3;
 template<typename T>
 using Image = agz::texture::texture2d_t<T>;
 
+template<typename T>
+using ImageView = agz::texture::texture2d_view_t<T, true>;
+
 class ImageQuilting
 {
 public:
@@ -40,7 +43,7 @@ private:
      * the result will be put at (x, y) in dst. all pixels before the new block
      * in scan order are assumed to be already filled.
      */
-    Image<Float3> pickSourceBlock(
+    ImageView<Float3> pickSourceBlock(
         const Image<Float3>        &src,
         const Image<Float3>        &dst,
         int                         x,
@@ -51,10 +54,10 @@ private:
      * put block at (x, y) in dst with minimum err boundary cut
      */
     void putBlockAt(
-        const Image<Float3> &block,
-        Image<Float3>       &dst,
-        int                  x,
-        int                  y) const;
+        const ImageView<Float3> &block,
+        Image<Float3>           &dst,
+        int                      x,
+        int                      y) const;
 
     int blockW_;
     int blockH_;

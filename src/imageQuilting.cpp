@@ -27,7 +27,6 @@ namespace
         return sqrErrSum;
     }
 
-    template<bool DST_X_POSITIVE, bool DST_Y_POSITIVE>
     float computeMSE(
         const Image<Float3> &src,
         const Image<Float3> &dst,
@@ -38,10 +37,10 @@ namespace
         int overlapW,
         int overlapH)
     {
-        if constexpr(!DST_X_POSITIVE && !DST_Y_POSITIVE)
+        if(dstX <= 0  && dstY <= 0)
             return 0;
 
-        if constexpr(DST_X_POSITIVE && !DST_Y_POSITIVE)
+        if(dstX > 0 && dstY <= 0)
         {
             const float sqrErrSum = computeErrorSum(
                 src, srcX, srcY, dst, dstX, dstY, overlapW, blockH);
@@ -51,7 +50,7 @@ namespace
             return sqrErrSum / pixelCnt;
         }
 
-        if constexpr(!DST_Y_POSITIVE && DST_Y_POSITIVE)
+        if(dstX <= 0 && dstY > 0)
         {
             const float sqrErrSum = computeErrorSum(
                 src, srcX, srcY, dst, dstX, dstY, blockW, overlapH);
@@ -85,16 +84,17 @@ namespace
         int lastUnitOffset = 0;
     };
 
-    Image<MinCostCutUnit> computeVerticalCutCost(
-        const Image<Float3> &A,
-        const Image<Float3> &B,
+    void computeVerticalCutCost(
+        const Image<Float3>     &A,
+        const ImageView<Float3> &B,
         int xA,    int yA,
         int xB,    int yB,
-        int width, int height)
+        int width, int height,
+        Image<MinCostCutUnit> &result)
     {
         // result(y, x) is min cost cut which passes
         //      Edge(A(xA + x, yA + y), B(xB + x + 1, yB + y))
-        Image<MinCostCutUnit> result(height, width - 1);
+        assert(result.width() == width - 1 && result.height() == height);
 
         auto edgeCost = [&](int x, int y)
         {
@@ -124,20 +124,19 @@ namespace
                     result(yi, xi) = { costRight, 1 };
             }
         }
-
-        return result;
     }
 
-    Image<MinCostCutUnit> computeHorizontalCutCost(
-        const Image<Float3> &A,
-        const Image<Float3> &B,
+    void computeHorizontalCutCost(
+        const Image<Float3>     &A,
+        const ImageView<Float3> &B,
         int xA,    int yA,
         int xB,    int yB,
-        int width, int height)
+        int width, int height,
+        Image<MinCostCutUnit> &result)
     {
         // result(y, x) is min cost cut which passes
         //      Edge(A(xA + x, yA + y), B(xB + x, yB + y + 1))
-        Image<MinCostCutUnit> result(height - 1, width);
+        assert(result.width() == width && result.height() == height - 1);
 
         auto edgeCost = [&](int x, int y)
         {
@@ -166,8 +165,6 @@ namespace
                     result(yi, xi) = { costPY, 1 };
             }
         }
-
-        return result;
     }
 
     /**
@@ -175,14 +172,18 @@ namespace
      *      Edge(A(xA + ret[yi], yA + yi), B(xB + ret[yi] + 1, yB + yi))
      */
     std::vector<int> computeVerticalMinCostCut(
-        const Image<Float3> &A,
-        const Image<Float3> &B,
+        const Image<Float3>     &A,
+        const ImageView<Float3> &B,
         int xA,    int yA,
         int xB,    int yB,
         int width, int height)
     {
-        const auto costs = computeVerticalCutCost(
-            A, B, xA, yA, xB, yB, width, height);
+        thread_local static Image<MinCostCutUnit> costs;
+        if(costs.size() != agz::math::vec2i{ width - 1, height })
+            costs.initialize(height, width - 1);
+
+        computeVerticalCutCost(
+            A, B, xA, yA, xB, yB, width, height, costs);
 
         float bestCost  = std::numeric_limits<float>::max();
         int bestCostXi = -1, nextXi = -1;
@@ -213,14 +214,18 @@ namespace
      *      Edge(A(xA + xi, yA + ret[xi]), B(xB + xi, yB + ret[xi] + 1))
      */
     std::vector<int> computeHorizontalMinCostCut(
-        const Image<Float3> &A,
-        const Image<Float3> &B,
+        const Image<Float3>     &A,
+        const ImageView<Float3> &B,
         int xA,    int yA,
         int xB,    int yB,
         int width, int height)
     {
-        const auto costs = computeHorizontalCutCost(
-            A, B, xA, yA, xB, yB, width, height);
+        thread_local static Image<MinCostCutUnit> costs;
+        if(costs.size() != agz::math::vec2i{ width, height - 1 })
+            costs.initialize(height - 1, width);
+
+        computeHorizontalCutCost(
+            A, B, xA, yA, xB, yB, width, height, costs);
 
         float bestCost = std::numeric_limits<float>::max();
         int bestCostYi = -1, nextYi = -1;
@@ -351,7 +356,7 @@ Image<Float3> ImageQuilting::generate(
     return dst.subtex(0, generatedHeight, 0, generatedWidth);
 }
 
-Image<Float3> ImageQuilting::pickSourceBlock(
+ImageView<Float3> ImageQuilting::pickSourceBlock(
     const Image<Float3>         &src,
     const Image<Float3>         &dst,
     int                          x,
@@ -368,20 +373,16 @@ Image<Float3> ImageQuilting::pickSourceBlock(
         const int srcX = disX(rng);
         const int srcY = disY(rng);
 
-        return src.subtex(srcY, srcY + blockH_, srcX, srcX + blockW_);
+        return src.subview(srcY, srcY + blockH_, srcX, srcX + blockW_);
     }
 
     std::multimap<float, agz::math::vec2i> mseToXY;
-
-    AGZ_DYN_FUNC_BOOL2_TEMPLATE(computeMSE, computeMSEFunc);
-    const auto mseFunc = computeMSEFunc[
-        agz::misc::bools_to_dyn_call_idx({ x > 0, y > 0 })];
 
     for(int srcY = 0; srcY < src.height() - blockH_; ++srcY)
     {
         for(int srcX = 0; srcX < src.width() - blockW_; ++srcX)
         {
-            const float mse = mseFunc(
+            const float mse = computeMSE(
                 src, dst, srcX, srcY, x, y,
                 blockW_, blockH_, overlapW_, overlapH_);
 
@@ -405,14 +406,14 @@ Image<Float3> ImageQuilting::pickSourceBlock(
         0, static_cast<int>(allowedXYs.size() - 1));
     const auto xy = allowedXYs[dis(rng)];
 
-    return src.subtex(xy.y, xy.y + blockH_, xy.x, xy.x + blockW_);
+    return src.subview(xy.y, xy.y + blockH_, xy.x, xy.x + blockW_);
 }
 
 void ImageQuilting::putBlockAt(
-    const Image<Float3> &block,
-    Image<Float3>       &dst,
-    int                  x,
-    int                  y) const
+    const ImageView<Float3> &block,
+    Image<Float3>           &dst,
+    int                      x,
+    int                      y) const
 {
     if(!useMinEdgeCut_)
     {

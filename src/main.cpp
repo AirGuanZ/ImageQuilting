@@ -44,6 +44,7 @@ std::optional<CmdArgs> parseCmdArgs(int argc, char *argv[])
         ("help",       "help information");
 
     const auto args = options.parse(argc, argv);
+
     if(args.count("help"))
     {
         std::cout << options.help({ "" }) << std::endl;
@@ -52,37 +53,45 @@ std::optional<CmdArgs> parseCmdArgs(int argc, char *argv[])
 
     CmdArgs result;
 
-    result.inputFilename  = args["input"] .as<std::string>();
-    result.outputFilename = args["output"].as<std::string>();
-    result.outputWidth    = args["width"] .as<int>();
-    result.outputHeight   = args["height"].as<int>();
-    result.blockWidth     = args["blockW"].as<int>();
-    result.blockHeight    = args["blockH"].as<int>();
+    try
+    {
+        result.inputFilename  = args["input"] .as<std::string>();
+        result.outputFilename = args["output"].as<std::string>();
+        result.outputWidth    = args["width"] .as<int>();
+        result.outputHeight   = args["height"].as<int>();
+        result.blockWidth     = args["blockW"].as<int>();
+        result.blockHeight    = args["blockH"].as<int>();
 
-    if(args.count("overlapW"))
-        result.overlapWidth = args["overlapW"].as<int>();
-    else
-        result.overlapWidth = std::max(1, result.blockWidth / 6);
+        if(args.count("overlapW"))
+            result.overlapWidth = args["overlapW"].as<int>();
+        else
+            result.overlapWidth = std::max(1, result.blockWidth / 6);
 
-    if(args.count("overlapH"))
-        result.overlapHeight = args["overlapH"].as<int>();
-    else
-        result.overlapHeight = std::max(1, result.blockHeight / 6);
+        if(args.count("overlapH"))
+            result.overlapHeight = args["overlapH"].as<int>();
+        else
+            result.overlapHeight = std::max(1, result.blockHeight / 6);
 
-    if(args.count("mseBlock"))
-        result.useMSEBlockSelection = args["mseBlock"].as<bool>();
-    else
-        result.useMSEBlockSelection = true;
+        if(args.count("mseBlock"))
+            result.useMSEBlockSelection = args["mseBlock"].as<bool>();
+        else
+            result.useMSEBlockSelection = true;
 
-    if(args.count("minCutEdge"))
-        result.useMinEdgeCut = args["minCutEdge"].as<bool>();
-    else
-        result.useMinEdgeCut = true;
+        if(args.count("minCutEdge"))
+            result.useMinEdgeCut = args["minCutEdge"].as<bool>();
+        else
+            result.useMinEdgeCut = true;
 
-    if(args.count("tolerance"))
-        result.blockTolerance = args["tolerance"].as<float>();
-    else
-        result.blockTolerance = 0.1f;
+        if(args.count("tolerance"))
+            result.blockTolerance = args["tolerance"].as<float>();
+        else
+            result.blockTolerance = 0.1f;
+    }
+    catch(...)
+    {
+        std::cout << options.help({ "" }) << std::endl;
+        return {};
+    }
 
     return result;
 }

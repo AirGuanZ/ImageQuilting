@@ -43,3 +43,6 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 ./ImageQuilting.exe --input=input.png --output=output.png --blockW=100 --blockH=100 --width=384 --height=384
 ```
 
+#### example.4
+
+![](./gallery/example.4.png)
