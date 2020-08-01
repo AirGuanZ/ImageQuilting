@@ -99,29 +99,31 @@ namespace
         auto edgeCost = [&](int x, int y)
         {
             return agz::math::sqr(
-                (A(yA + y, xA + x) - B(yB + y, xB + x + 1)).lum());
+                abs(A(yA + y, xA + x) - B(yB + y, xB + x + 1)).lum());
         };
 
         for(int xi = 0; xi < width - 1; ++xi)
             result(0, xi).cost = edgeCost(xi, 0);
 
-        for(int yi = 0; yi < height; ++yi)
+        for(int yi = 1; yi < height; ++yi)
         {
             for(int xi = 0; xi < width - 1; ++xi)
             {
                 const float costLeft = xi > 0 ?
-                    edgeCost(xi - 1, yi) : std::numeric_limits<float>::max();
+                    result(yi - 1, xi - 1).cost : std::numeric_limits<float>::max();
                 const float costMiddle =
-                    edgeCost(xi, yi);
+                    result(yi - 1, xi).cost;
                 const float costRight = xi < width - 2 ?
-                    edgeCost(xi + 1, yi) : std::numeric_limits<float>::max();
+                    result(yi - 1, xi + 1).cost : std::numeric_limits<float>::max();
+
+                const float ec = edgeCost(xi, yi);
 
                 if(costLeft <= costMiddle && costLeft <= costRight)
-                    result(yi, xi) = { costLeft, -1 };
+                    result(yi, xi) = { costLeft + ec, -1 };
                 else if(costMiddle <= costLeft && costMiddle <= costRight)
-                    result(yi, xi) = { costMiddle, 0 };
+                    result(yi, xi) = { costMiddle + ec, 0 };
                 else
-                    result(yi, xi) = { costRight, 1 };
+                    result(yi, xi) = { costRight + ec, 1 };
             }
         }
     }
@@ -141,28 +143,30 @@ namespace
         auto edgeCost = [&](int x, int y)
         {
             return agz::math::sqr(
-                (A(yA + y, xA + x) - B(yB + y + 1, xB + x)).lum());
+                abs(A(yA + y, xA + x) - B(yB + y + 1, xB + x)).lum());
         };
 
         for(int yi = 0; yi < height - 1; ++yi)
             result(yi, 0).cost = edgeCost(0, yi);
 
-        for(int xi = 0; xi < width; ++xi)
+        for(int xi = 1; xi < width; ++xi)
         {
             for(int yi = 0; yi < height - 1; ++yi)
             {
                 const float costNY = yi > 0 ?
-                    edgeCost(xi, yi - 1) : std::numeric_limits<float>::max();
-                const float costMY = edgeCost(xi, yi);
+                    result(yi - 1, xi - 1).cost : std::numeric_limits<float>::max();
+                const float costMY = result(yi, xi - 1).cost;
                 const float costPY = yi < height - 2 ?
-                    edgeCost(xi, yi + 1) : std::numeric_limits<float>::max();
+                    result(yi + 1, xi - 1).cost : std::numeric_limits<float>::max();
+
+                const float ec = edgeCost(xi, yi);
 
                 if(costNY <= costMY && costNY <= costPY)
-                    result(yi, xi) = { costNY, -1 };
+                    result(yi, xi) = { costNY + ec, -1 };
                 else if(costMY <= costNY && costMY <= costPY)
-                    result(yi, xi) = { costMY, 0 };
+                    result(yi, xi) = { costMY + ec, 0 };
                 else
-                    result(yi, xi) = { costPY, 1 };
+                    result(yi, xi) = { costPY + ec, 1 };
             }
         }
     }
