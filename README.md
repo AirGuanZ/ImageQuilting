@@ -56,6 +56,14 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 ![](./gallery/example.4.png)
 
 ```shell
+./ImageQuilting.exe --input=input.png --output=output.png --width=384 --height=384 --blockW=50 --blockH=50
+```
+
+#### example.5
+
+![](./gallery/example.5.png)
+
+```shell
 ./ImageQuilting.exe --input=input.png --output=output.png --width=384 --height=384 --blockW=90 --blockH=90 --mseBlock=true/false --minCutEdge=true/false --tolerance=0.05
 ```
 
