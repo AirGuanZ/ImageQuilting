@@ -1,7 +1,7 @@
 #include <map>
 
-#include <agz/utility/console.h>
-#include <agz/utility/misc.h>
+#include <agz-utils/console.h>
+#include <agz-utils/misc.h>
 
 #include "imageQuilting.h"
 

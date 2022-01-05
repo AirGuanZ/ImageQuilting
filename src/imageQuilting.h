@@ -2,7 +2,7 @@
 
 #include <random>
 
-#include <agz/utility/texture.h>
+#include <agz-utils/texture.h>
 
 using Float3 = agz::math::float3;
 
