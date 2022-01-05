@@ -406,7 +406,7 @@ ImageView<Float3> ImageQuilting::pickSourceBlock(
             break;
     }
 
-    const std::uniform_int_distribution dis(
+    std::uniform_int_distribution dis(
         0, static_cast<int>(allowedXYs.size() - 1));
     const auto xy = allowedXYs[dis(rng)];
 
