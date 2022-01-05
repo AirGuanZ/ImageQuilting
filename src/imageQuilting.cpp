@@ -369,9 +369,9 @@ ImageView<Float3> ImageQuilting::pickSourceBlock(
 {
     if(!useMSEBlockSelection_)
     {
-        const std::uniform_int_distribution disX(
+        std::uniform_int_distribution disX(
             0, static_cast<int>(src.width() - blockW_ - 1));
-        const std::uniform_int_distribution disY(
+        std::uniform_int_distribution disY(
             0, static_cast<int>(src.height() - blockH_ - 1));
 
         const int srcX = disX(rng);
